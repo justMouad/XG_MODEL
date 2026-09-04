@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+data/raw/
+data/processed/
+open-data/
+models/*/
+.env
+*.sqlite

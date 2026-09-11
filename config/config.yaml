@@ -1,0 +1,70 @@
+# ---------------------------------------------------------------- general
+project:
+  seed: 42
+  log_level: INFO
+  data_dir: data
+  models_dir: models
+  reports_dir: reports
+
+# ---------------------------------------------------------------- data
+data:
+  # Path to a local clone of https://github.com/statsbomb/open-data  (its "data" folder).
+  # Get it with:  git clone --depth 1 https://github.com/statsbomb/open-data.git
+  open_data_dir: open-data/data
+  # If the directory above does not exist, missing files are downloaded from GitHub into cache_dir.
+  download_if_missing: true
+  cache_dir: data/raw/statsbomb_cache
+  # Restrict to (competition_name, season_name) pairs. null = everything available.
+  competitions: null
+  #  - {competition: "FIFA World Cup", season: "2018"}
+  #  - {competition: "La Liga", season: "2018/2019"}
+  max_matches: null          # set e.g. 50 for a quick dev run
+  gender: null               # "male" | "female" | null (both)
+  include_penalties: false   # penalties are a separate, ~constant-probability process
+  include_shootouts: false   # period 5 events are excluded by default
+
+# ---------------------------------------------------------------- features
+features:
+  use_freeze_frame: true
+  use_player_history: false      # leakage-safe, strictly prior-match finishing prior (see README)
+  use_competition_context: false # competition as a feature hurts transfer to new competitions
+  history_shrinkage_shots: 40    # pseudo-shots in the empirical-Bayes player prior
+  winsor_quantiles: [0.001, 0.999]
+
+# ---------------------------------------------------------------- split / CV
+split:
+  strategy: time                 # "time" (last matches by date held out) | "group" (random matches)
+  test_size: 0.2
+  n_splits: 5                    # GroupKFold on match_id inside the training set
+
+# ---------------------------------------------------------------- models
+training:
+  models: [logistic_regression, random_forest, extra_trees, xgboost, lightgbm, catboost, svm, neural_network]
+  class_weight: null             # null keeps probabilities faithful. "balanced" only with calibration.
+  calibration: sigmoid           # none | sigmoid | isotonic   (cross-fitted on out-of-fold predictions)
+  n_jobs: -1
+  refit_on_all_data: true        # also store a model refit on train+test for production inference
+  svm_max_train_samples: 20000
+  select_by: log_loss            # log_loss | brier_score | roc_auc | pr_auc (cross-validated, TRAIN set only)
+
+optimization:
+  enabled: true
+  n_trials: 25                   # per model
+  timeout_per_model: 900         # seconds
+  per_model_trials:              # override
+    logistic_regression: 15
+    svm: 6
+    neural_network: 12
+
+# ---------------------------------------------------------------- explainability
+explain:
+  shap_sample: 2000
+  shap_background: 200
+  pdp_features: [distance, angle, x, y, minute, n_defenders_in_cone]
+
+# ---------------------------------------------------------------- database
+database:
+  # PostgreSQL URL. Falls back to env var DATABASE_URL, then to local SQLite file.
+  url: postgresql+psycopg2://xg:xg@localhost:5432/xg
+  fallback_sqlite: data/xg.sqlite
+  schema: null

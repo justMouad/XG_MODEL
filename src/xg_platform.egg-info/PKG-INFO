@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: xg-platform
+Version: 1.0.0
+Summary: Expected Goals (xG) modelling and analytics platform on StatsBomb Open Data
+Requires-Python: >=3.10
